@@ -13,11 +13,17 @@
     <ul>
         <li class="dragBox box1">
             <div class="dragHead"><span>标题</span></div>
-            <span class="dragTag">1</span>
+            <div class="dragBody">
+                <span class="dragTag">1</span>
+            </div>
+
         </li>
         <li class="dragBox box2">
             <div class="dragHead"><span>标题</span></div>
-            <span class="dragTag">2</span>
+            <div class="dragBody">
+                <span class="dragTag">2</span>
+            </div>
+
         </li>
     </ul>
 </div>
@@ -37,7 +43,7 @@ $(function(){
 
 //box大小变动监听事件
 function dragSizeLister(bar){
-    var ep = bar.parentNode;
+    var ep = bar.parentNode.parentNode;
     $(bar).bind("mousedown",function(e){
         $(ep).bind("mousedown",resize);
         $(document).bind("mouseup",stop);
@@ -59,11 +65,16 @@ function dragSizeLister(bar){
 
         //动画控制box大小到相近规格,如果对box的大小有规格控制的话
     }
-    }
+}
 
 //box位置变动监听事件
 function dragPositionLister(bar){
     var ep = bar.parentNode;
+
+    //记录初始位置，以便box返回
+    var xo,yo;
+    //记录新位置，以便动画行为发生
+    var xn,yn;
     $(bar).bind("mousedown",function(e){
         $(ep).bind("mousedown",move);
         $(document).bind("mouseup",stop);
@@ -72,8 +83,10 @@ function dragPositionLister(bar){
 
     function move(e){
         //获取鼠标按下时context外部边距
-        var x = e.pageX - $(bar).offset().left;
-        var y = e.pageY - $(bar).offset().top;
+        xo = e.pageX;
+        yo = e.pageY;
+        var x = xo - $(bar).offset().left;
+        var y = yo - $(bar).offset().top;
         $(document).mousemove(function(e){
             //计算鼠标移动后的位置-外边距，得到当前box相对于context的位置
             $(ep).css({"left":(e.pageX-x),"top":(e.pageY-y)});
@@ -84,17 +97,18 @@ function dragPositionLister(bar){
         $(document).unbind("mousemove").unbind("mouseup");
         $(ep).unbind("mousedown").unbind("mouseup");
     }
-    }
-//box布局
+}
+//box布局,传入box预出现的位置
 function boxLayout(box){
     var boxAry = [];
     var headHeight = 20;//boxHead的高度
+    var box = 20;//box间隔距离
     //获取box对象
     $.each($(".dragBox"),function(e){
-        var l = $(bar).offset().left,
-             t = $(bar).offset().top,
-             w = $(bar).offsetWidth,
-             h = $(bar).offsetHeight;
+        var l = $(box).offset().left,
+             t = $(box).offset().top,
+             w = $(box).offsetWidth,
+             h = $(box).offsetHeight;
 
         boxAry.push({
             //一个box有6个点
@@ -105,33 +119,72 @@ function boxLayout(box){
             "s":{'x':l,'y':t + h},
             "t":{'x':l,'y':t + headHeight},
 
-//            "x":$(bar).offset().left,
-//            "y":$(bar).offset().top,
-//            "w":$(bar).offsetWidth,
-//            "h":$(bar).offsetHeight,
-            "jq":$(bar),
+//            "x":$(box).offset().left,
+//            "y":$(box).offset().top,
+//            "w":$(box).offsetWidth,
+//            "h":$(box).offsetHeight,
+            "jq":$(box),
         });
     });
 
-    var length = boxAry.length;
-    var actionAry = [];
-    //筛选因移动有重叠部分的box，并确定变动方式
-    for(var i=0;i<length;i++){
-        var boxi = boxAry[i];
-        if(box.is(boxi)){
-            continue;
+
+    //根据变动类型和变动行为确定新位置
+    //变动类型可分：拖拽变动、大小变动
+    //拖拽行为可分为：水平位置变动、由下而上位置变动、由上而下位置变动
+    function getNewPosition(){
+
+    }
+
+    //位置变动动画行为
+    //引起变动的box，起点box，终点box，页面上的box
+    function boxLayOutMove(eventBox,sbox,ebox,boxAry){
+        var l = eventBox.s.y - eventBox.o.y;
+        var length = boxAry.length;
+        var downboxAry = [],upboxAry = [];
+
+        var actionAry = [];
+        //筛选纵向的待位移box和横向的待位移box
+        for(var i=0;i<length;i++){
+            var boxi = boxAry[i];
+            if(eventBox.is(boxi)){
+                continue;
+            }
+
+            //原位置影响的元素（下方元素）
+            if(!((boxi.o.x > eventBox.p.x || boxi.p.x < eventBox.o.x) && boxi.o.y > eventBox.s.y)){
+                upboxAry.push(boxi);
+            }
+
+            //新位置影响的元素（从新位置起点开始的下方元素）
+
         }
-        if(boxi.o.x >= boxj.o.x && boxi.o.x <= boxj.p.x){
+
+
+
+        //原位置下方元素全部上升
+        if(!((boxi.o.x > eventBox.p.x || boxi.p.x < eventBox.o.x) && boxi.o.y > eventBox.s.y)
+        ){
+            if(){
+                actionAry.push({
+
+                });
+            }
+
+        }
+
+        //新位置元素全部下降
+
+
+        //对待变动位置的元素按y轴坐标大小排序
+        function sortBoxAry(boxAry){
 
         }
     }
+
+
+
     //按变动动作集变动
     for(var action in actionAry){
-
-    }
-
-
-    function boxCom(box1,box2){
 
     }
 }

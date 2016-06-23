@@ -1,0 +1,54 @@
+*{
+    box-sizing: border-box;
+}
+#context{
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    position: absolute;
+
+    overflow:auto;
+    border:1px solid #aaa;
+}
+
+#context ul{
+    margin:0;
+    padding:0;
+    display:block;
+    list-style-type:none;
+    height:auto;
+}
+
+.dragBox{
+    min-width: 102px;
+    min-height: 102px;
+    border-radius: 4px;
+    border:1px solid blue;
+    position: absolute;
+    background-color: azure;
+    z-index:5;
+}
+
+.dragHead{
+    height: 20px;
+    width: 100%;
+    background-color: blue;
+    font-color:white;
+}
+
+.dragTag{
+    bottom:0px;
+    right: 0px;
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    background-color: gainsboro;
+}
+
+.box1{
+    left:10px;
+}
+.box2{
+    left:124px;
+}

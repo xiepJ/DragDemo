@@ -57,7 +57,13 @@
 
 .box1{
     left:10px;
+    top:100px;
 }
 .box2{
     left:124px;
+    top:100px;
+}
+.box3{
+    left:124px;
+    top:210px;
 }

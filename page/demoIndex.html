@@ -25,6 +25,13 @@
             </div>
 
         </li>
+        <li class="dragBox box3">
+            <div class="dragHead"><span>标题</span></div>
+            <div class="dragBody">
+                <span class="dragTag">3</span>
+            </div>
+
+        </li>
     </ul>
 </div>
 </body>
@@ -87,30 +94,44 @@ function dragPositionLister(bar){
         yo = e.pageY;
         var x = xo - $(bar).offset().left;
         var y = yo - $(bar).offset().top;
+        var flag = true;
         $(document).mousemove(function(e){
             //计算鼠标移动后的位置-外边距，得到当前box相对于context的位置
             $(ep).css({"left":(e.pageX-x),"top":(e.pageY-y)});
+            if(flag){
+                boxLayout(ep);
+                flag = false;
+            }
+
         });
     }
     function stop(e){
-
         $(document).unbind("mousemove").unbind("mouseup");
         $(ep).unbind("mousedown").unbind("mouseup");
     }
 }
-//box布局,传入box预出现的位置
-function boxLayout(box){
-    var boxAry = [];
-    var headHeight = 20;//boxHead的高度
-    var box = 20;//box间隔距离
-    //获取box对象
-    $.each($(".dragBox"),function(e){
-        var l = $(box).offset().left,
-             t = $(box).offset().top,
-             w = $(box).offsetWidth,
-             h = $(box).offsetHeight;
 
-        boxAry.push({
+
+//box布局,传入box预出现的位置
+function boxLayout(boxNode){
+
+    var box;
+    var boxAry = [];
+    var headHeight = 20;//box表头高度
+    var boxspacing = 20;//box间隔距离
+    //获取box对象
+    var i = 0;
+    $.each($(".dragBox"),function(i,e){
+
+        var l = $(e).offset().left,
+             t = $(e).offset().top,
+             w = boxNode.offsetWidth,
+             h = boxNode.offsetHeight;
+
+        var tmpbox = {
+            "no":i++,
+            "w":w,
+            "h":h,
             //一个box有6个点
             "o":{'x':l,'y':t},
             "p":{'x':l + w,'y':t},
@@ -118,15 +139,18 @@ function boxLayout(box){
             "r":{'x':l + w,'y':t + h},
             "s":{'x':l,'y':t + h},
             "t":{'x':l,'y':t + headHeight},
+            "jq":e,
+        };
 
-//            "x":$(box).offset().left,
-//            "y":$(box).offset().top,
-//            "w":$(box).offsetWidth,
-//            "h":$(box).offsetHeight,
-            "jq":$(box),
-        });
+        if($(boxNode).is(e)){
+            box = tmpbox;
+        }else{
+            boxAry.push(tmpbox);
+        }
+
     });
 
+    boxLayOutMove(box,null,null,boxAry);
 
     //根据变动类型和变动行为确定新位置
     //变动类型可分：拖拽变动、大小变动
@@ -136,57 +160,141 @@ function boxLayout(box){
     }
 
     //位置变动动画行为
-    //引起变动的box，起点box，终点box，页面上的box
-    function boxLayOutMove(eventBox,sbox,ebox,boxAry){
-        var l = eventBox.s.y - eventBox.o.y;
+    //引起变动的box，起点box，终点box，页面的box集合
+    function boxLayOutMove(eventSourceBox,nbox,ebox,boxAry){
+        var l = eventSourceBox.s.y - eventSourceBox.o.y;
         var length = boxAry.length;
-        var downboxAry = [],upboxAry = [];
 
-        var actionAry = [];
-        //筛选纵向的待位移box和横向的待位移box
-        for(var i=0;i<length;i++){
-            var boxi = boxAry[i];
-            if(eventBox.is(boxi)){
-                continue;
+        var exentBoxs = [eventSourceBox];
+        getUpBox(exentBoxs,boxAry,l);
+
+        //获取原位置下方最近的box
+        function getUpBox(eventBoxs,boxAry,l){
+            var upbox = [];
+
+            for(var index in eventBoxs){
+                var eventBox = eventBoxs[index];
+                for(var i=0;i<boxAry.length;i++){
+                    var boxi = boxAry[i];
+                    if(eventBox.no == boxi.no || eventSourceBox.no == boxi.no){
+                        continue;
+                    }
+
+                    //筛选移动box原位置下方y最小的元素
+                    //必须是当前事件box下方的box
+                    if(!(boxi.o.x > eventBox.p.x || boxi.p.x < eventBox.o.x) && boxi.o.y > eventBox.s.y){
+                        if(upbox.length == 0){
+                            upbox.push(boxi);
+                            continue;
+                        }
+
+                        var flag = true;
+                        for(var j=0;j<upbox.length;j++){
+                            //找出位置在最上方的元素记录
+                            if(!(boxi.o.x > upbox[j].p.x || boxi.p.x < upbox[j].o.x)){
+                                upbox[j] = (!upbox[j] || upbox[j].o.y > boxi.o.y) ? boxi: upbox[j];
+                                flag = false;
+                            }
+                        }
+                        //记录同级box（水平上最靠近事件box）
+                        if(flag){
+                            upbox.push(boxi);
+                        }
+
+                    }
+                }
             }
 
-            //原位置影响的元素（下方元素）
-            if(!((boxi.o.x > eventBox.p.x || boxi.p.x < eventBox.o.x) && boxi.o.y > eventBox.s.y)){
-                upboxAry.push(boxi);
+            moveUp(upbox);
+
+            if(upbox.length == 0){
+                return;
             }
 
-            //新位置影响的元素（从新位置起点开始的下方元素）
+            getUpBox(upbox,boxAry,l);
+        }
+
+        //按梯度向上移动，因为上移动作本身是一个尝试上移的过程，需要判断上移方向是否被阻挡，所以采取按梯度上移
+        function moveUp(upboxAry){
+            var content = $('#context');
+
+            for(var index in upboxAry) {
+                var box = upboxAry[index];
+                var _y = 0;
+
+                var boxs = [];
+                boxs.push(boxAry);
+                boxs.push(eventSourceBox);
+                while(true){
+                    _y++;
+
+                    var flag = false;
+                    for(var i=0;i>boxs.length;i++){
+                        if(!(boxs[i].o.x > box.p.x || boxs[i].p.x < box.o.x) && !(boxs[i].s.y < box.o.y || boxs[i].o.y > box.s.y)){
+                            flag = true;
+                        }
+                    }
+                    if(flag || (parseInt(box.o.y) - content.offset().top  < _y)){
+                        _y--;
+                        _y-=boxspacing;
+                        break;
+                    }
+                }
+
+                $(box.jq).animate({'top':'-='+_y+'px'},"slow");
+            }
 
         }
+
+
+
+        //下移采用集体下移的方式，下移距离是确定的（事件box.h）,需要确定下移对象
+        function moveDown(updownAry){
+
+        }
+
+
+
+        //获取预判位置下方box
+//        function getDownBox(eventBox,eBox,boxAry){
+//            var downbox = null;
+//            for(var i=0;i<length;i++){
+//                var boxi = boxAry[i];
+//                if(eventBox.is(boxi)){
+//                    continue;
+//                }
+//
+//                //筛选移动元素下方y最小的元素
+//                if(!((boxi.o.x > eBox.p.x || boxi.p.x < eBox.o.x) && boxi.s.y > eBox.o.y)){
+//                    downbox = (!downbox || downbox.o.y > boxi.o.y) ? boxi: downbox;
+//                }
+//            }
+//            return downbox;
+//        }
 
 
 
         //原位置下方元素全部上升
-        if(!((boxi.o.x > eventBox.p.x || boxi.p.x < eventBox.o.x) && boxi.o.y > eventBox.s.y)
-        ){
-            if(){
-                actionAry.push({
-
-                });
-            }
-
-        }
 
         //新位置元素全部下降
 
 
         //对待变动位置的元素按y轴坐标大小排序
-        function sortBoxAry(boxAry){
-
-        }
+//        function sortBoxAry(boxAry){
+//
+//        }
     }
 
 
 
     //按变动动作集变动
-    for(var action in actionAry){
+//    for(var action in actionAry){
+//
+//    }
+}
 
-    }
+function box(){
+
 }
 </script>
 </html>

@@ -98,11 +98,7 @@ function dragPositionLister(bar){
         $(document).mousemove(function(e){
             //计算鼠标移动后的位置-外边距，得到当前box相对于context的位置
             $(ep).css({"left":(e.pageX-x),"top":(e.pageY-y)});
-            if(flag){
                 boxLayout(ep);
-                flag = false;
-            }
-
         });
     }
     function stop(e){
@@ -111,22 +107,20 @@ function dragPositionLister(bar){
     }
 }
 
-
-//box布局,传入box预出现的位置
-function boxLayout(boxNode){
-
+//实时获取box，这里我在想，存储box位置信息是否正确，这意味着box信息不再是最新的
+function  getBoxs(boxNode){
     var box;
     var boxAry = [];
     var headHeight = 20;//box表头高度
-    var boxspacing = 20;//box间隔距离
+
     //获取box对象
     var i = 0;
     $.each($(".dragBox"),function(i,e){
 
         var l = $(e).offset().left,
-             t = $(e).offset().top,
-             w = boxNode.offsetWidth,
-             h = boxNode.offsetHeight;
+                t = $(e).offset().top,
+                w = e.offsetWidth,
+                h = e.offsetHeight;
 
         var tmpbox = {
             "no":i++,
@@ -149,6 +143,16 @@ function boxLayout(boxNode){
         }
 
     });
+    return {eventBox:box,boxAry:boxAry};
+}
+
+//box布局,传入box预出现的位置
+function boxLayout(boxNode){
+    var boxspacing = 20;//box间隔距离
+
+    var boxs = getBoxs(boxNode);
+    var box = boxs.eventBox;
+    var boxAry = boxs.boxAry;
 
     boxLayOutMove(box,null,null,boxAry);
 
@@ -160,7 +164,7 @@ function boxLayout(boxNode){
     }
 
     //位置变动动画行为
-    //引起变动的box，起点box，终点box，页面的box集合
+    //源事件box，随动事件box，目标box，页面的box集合
     function boxLayOutMove(eventSourceBox,nbox,ebox,boxAry){
         var l = eventSourceBox.s.y - eventSourceBox.o.y;
         var length = boxAry.length;
@@ -215,16 +219,36 @@ function boxLayout(boxNode){
         }
 
         //按梯度向上移动，因为上移动作本身是一个尝试上移的过程，需要判断上移方向是否被阻挡，所以采取按梯度上移
+        //该方法现在需要保证所有box的位置是最新的
         function moveUp(upboxAry){
             var content = $('#context');
 
             for(var index in upboxAry) {
-                var box = upboxAry[index];
+                var $box = $(upboxAry[index].jq);
+                var l = $box.offset().left,
+                        t = $box.offset().top,
+                        w = upboxAry[index].jq.offsetWidth,
+                        h = upboxAry[index].jq.offsetHeight;
+
+                box = {
+                    "no":i++,
+                    "w":w,
+                    "h":h,
+                    //一个box有6个点
+                    "o":{'x':l,'y':t},
+                    "p":{'x':l + w,'y':t},
+                    "q":{'x':l + w,'y':t + 20},
+                    "r":{'x':l + w,'y':t + h},
+                    "s":{'x':l,'y':t + h},
+                    "t":{'x':l,'y':t + 20},
+                    "jq":upboxAry[index].jq,
+                };
+
+
                 var _y = 0;
 
                 var boxs = [];
-                boxs.push(boxAry);
-                boxs.push(eventSourceBox);
+                boxs.push(getBoxs(box.jq).boxAry);
                 while(true){
                     _y++;
 
